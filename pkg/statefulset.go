@@ -28,7 +28,7 @@ func (s *StatefulSet) GetPodTemplateSpec() *v1.PodTemplateSpec {
 func (s *StatefulSet) Update(ctx context.Context, clientset *kubernetes.Clientset) error {
 	_, err := clientset.AppsV1().StatefulSets(s.Namespace).Update(context.TODO(), (*appv1.StatefulSet)(s), metav1.UpdateOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to update deployment %v/%v, %v", s.GetNamespace(), s.GetName(), err)
+		return fmt.Errorf("failed to update %v %v/%v, %v", s.GetKind(), s.GetNamespace(), s.GetName(), err)
 	}
 	return nil
 }

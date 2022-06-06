@@ -30,7 +30,7 @@ func (d *DaemonSet) GetPodTemplateSpec() *v1.PodTemplateSpec {
 func (d *DaemonSet) Update(ctx context.Context, clientset *kubernetes.Clientset) error {
 	_, err := clientset.AppsV1().DaemonSets(d.Namespace).Update(context.TODO(), (*appv1.DaemonSet)(d), metav1.UpdateOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to update deployment %v/%v, %v", d.GetNamespace(), d.GetName(), err)
+		return fmt.Errorf("failed to update %v %v/%v, %v", d.GetKind(), d.GetNamespace(), d.GetName(), err)
 	}
 	return nil
 }
