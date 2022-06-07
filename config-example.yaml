@@ -1,9 +1,9 @@
 restartInterval: 10m
 
 # For example "k8s-restarter.kubernetes.io/enabled"
-includeAnnotation: "k8s-restarter.kubernetes.io/enabled"
+includeAnnotation: ""
 
+# For example "k8s-restarter.kubernetes.io/ignore"
 excludeAnnotation: ""
-excludeNamespaces:
-  - kube-system
-  - default
+
+excludeNamespaces: []

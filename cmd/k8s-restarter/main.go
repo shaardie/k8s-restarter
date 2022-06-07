@@ -4,13 +4,12 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"path/filepath"
 	"time"
 
 	"github.com/shaardie/k8s-restarter/pkg"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
 )
 
 var (
@@ -19,19 +18,24 @@ var (
 )
 
 func init() {
-	if home := homedir.HomeDir(); home != "" {
-		flag.StringVar(&kubeconfig, "kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
-	} else {
-		flag.StringVar(&kubeconfig, "kubeconfig", "", "absolute path to the kubeconfig file")
-	}
+	flag.StringVar(&kubeconfig, "kubeconfig", "", "path to the kubeconfig file")
 	flag.StringVar(&configFile, "config", "", "path to the configuration file")
 	flag.Parse()
 }
 
 func getK8sClientset(kubeconfig string) (*kubernetes.Clientset, error) {
-	k8sConfig, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to build kubernetes config from kubeconfig %v, %w", kubeconfig, err)
+	var k8sConfig *rest.Config
+	var err error
+	if kubeconfig == "" {
+		k8sConfig, err = rest.InClusterConfig()
+		if err != nil {
+			return nil, fmt.Errorf("failed to use in cluster kubernetes config, %w", err)
+		}
+	} else {
+		k8sConfig, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to build kubernetes config from kubeconfig %v, %w", kubeconfig, err)
+		}
 	}
 
 	clientset, err := kubernetes.NewForConfig(k8sConfig)
