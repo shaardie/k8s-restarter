@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"time"
 
+	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
 type Reconsiler struct {
+	Logger    *zap.Logger
 	Cfg       *Config
 	Clientset *kubernetes.Clientset
 }
@@ -53,23 +55,31 @@ func (r *Reconsiler) ResonsileApp(ctx context.Context, app App) error {
 	namespace := app.GetNamespace()
 	kind := app.GetKind()
 
+	logger := r.Logger.With(
+		zap.Any("app", map[string]string{
+			"name":      name,
+			"namespace": namespace,
+			"kind":      kind,
+		}),
+	)
+
 	// Check for exclusion
 	if r.namespaceExcluded(namespace) {
-		fmt.Printf("namespace %v of %v %v/%v excluded...skipping\n", namespace, kind, name, name)
+		logger.Debug("namespace excluded")
 		return nil
 	}
 	if r.Cfg.ExcludeAnnotation != "" && HasAnnotation(app, r.Cfg.ExcludeAnnotation) {
-		fmt.Printf("%v %v/%v excluded due to annotation %v...skipping\n", namespace, kind, name, r.Cfg.ExcludeAnnotation)
+		logger.Debug("excluded due to configured annotation")
 		return nil
 	}
 	if r.Cfg.IncludeAnnotation != "" && !HasAnnotation(app, r.Cfg.IncludeAnnotation) {
-		fmt.Printf("%v %v/%v excluded due to missing annotation %v...skipping\n", namespace, kind, name, r.Cfg.IncludeAnnotation)
+		logger.Debug("excluded due to missing annotation")
 		return nil
 	}
 
 	// Check for status
 	if !app.StatusOK() {
-		fmt.Printf("%v %v/%v not ready...skipping\n", kind, namespace, name)
+		logger.Debug("not ready...skipping")
 		return nil
 	}
 
@@ -84,7 +94,7 @@ func (r *Reconsiler) ResonsileApp(ctx context.Context, app App) error {
 		last = &t
 	}
 	if last.Add(r.Cfg.RestartInterval).After(now) {
-		fmt.Printf("%v %v/%v not scheduled for a restart\n", kind, namespace, name)
+		logger.Debug("not scheduled for a restart")
 		return nil
 	}
 
@@ -94,7 +104,7 @@ func (r *Reconsiler) ResonsileApp(ctx context.Context, app App) error {
 		return fmt.Errorf("failed to set annotations on pod template from %v %v/%v, %w", kind, namespace, name, err)
 	}
 
-	fmt.Printf("%v %v/%v restarted\n", kind, namespace, name)
+	logger.Debug("restarted")
 	return nil
 }
 

@@ -4,22 +4,24 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/shaardie/k8s-restarter/pkg"
+	"go.uber.org/zap"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/klog/v2"
 )
 
 var (
 	kubeconfig string
 	configFile string
+	debug      bool
 )
 
 func init() {
-	klog.InitFlags(nil)
+	flag.BoolVar(&debug, "debug", false, "Enable debug mode")
 	flag.StringVar(&kubeconfig, "kubeconfig", "", "path to the kubeconfig file")
 	flag.StringVar(&configFile, "config", "", "path to the configuration file")
 	flag.Parse()
@@ -49,17 +51,28 @@ func getK8sClientset(kubeconfig string) (*kubernetes.Clientset, error) {
 }
 
 func main() {
+	// Create logger
+	loggerCfg := zap.NewProductionConfig()
+	if debug {
+		loggerCfg.Level.SetLevel(zap.DebugLevel)
+	}
+	logger, err := loggerCfg.Build()
+	if err != nil {
+		log.Fatalf("Failed to create logger, %v\n", err)
+	}
+
 	clientset, err := getK8sClientset(kubeconfig)
 	if err != nil {
-		klog.Fatalf("Failed to create kubernetes client set, %v", err)
+		logger.Sugar().Fatalw("Failed to create kubernetes client set", "error", err)
 	}
 
 	cfg, err := pkg.GetConfig(configFile)
 	if err != nil {
-		klog.Fatalf("Unable to read config file '%v', %v", configFile, err)
+		logger.Sugar().Fatalw("Unable to read config file", "config file", configFile, "error", err)
 	}
 
 	reconsiler := pkg.Reconsiler{
+		Logger:    logger,
 		Cfg:       cfg,
 		Clientset: clientset,
 	}
@@ -68,7 +81,7 @@ func main() {
 		for {
 			err := (&pkg.Server{}).Run()
 			if err != nil {
-				klog.Errorf("Failure while running server, %v", err)
+				logger.Sugar().Errorw("Failure while running server", "error", err)
 			}
 		}
 	}()
@@ -76,7 +89,7 @@ func main() {
 	for {
 		err = reconsiler.Resonsile(context.Background())
 		if err != nil {
-			klog.Errorf("Failed to reconsile, %v", err)
+			logger.Sugar().Errorw("Failed to reconsile", "error", err)
 		}
 		time.Sleep(time.Minute)
 	}
