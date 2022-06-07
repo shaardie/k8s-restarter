@@ -1,0 +1,17 @@
+{{- if .Values.serviceAccount.create -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+metadata:
+  name: {{ include "k8s-restarter.fullname" . }}
+  labels:
+    {{- include "k8s-restarter.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "k8s-restarter.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "k8s-restarter.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}

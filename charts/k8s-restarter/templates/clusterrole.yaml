@@ -1,0 +1,20 @@
+{{- if .Values.serviceAccount.create -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "k8s-restarter.fullname" . }}
+  labels:
+    {{- include "k8s-restarter.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+    - apps
+  resources:
+    - deployments
+    - statefulsets
+    - daemonsets
+  verbs:
+    - get
+    - list
+    - watch
+    - update
+{{- end }}

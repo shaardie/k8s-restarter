@@ -10,6 +10,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/klog/v2"
 )
 
 var (
@@ -18,6 +19,7 @@ var (
 )
 
 func init() {
+	klog.InitFlags(nil)
 	flag.StringVar(&kubeconfig, "kubeconfig", "", "path to the kubeconfig file")
 	flag.StringVar(&configFile, "config", "", "path to the configuration file")
 	flag.Parse()
@@ -49,12 +51,12 @@ func getK8sClientset(kubeconfig string) (*kubernetes.Clientset, error) {
 func main() {
 	clientset, err := getK8sClientset(kubeconfig)
 	if err != nil {
-		panic(err.Error())
+		klog.Fatalf("Failed to create kubernetes client set, %v", err)
 	}
 
 	cfg, err := pkg.GetConfig(configFile)
 	if err != nil {
-		panic(err.Error())
+		klog.Fatalf("Unable to read config file '%v', %v", configFile, err)
 	}
 
 	reconsiler := pkg.Reconsiler{
@@ -62,10 +64,19 @@ func main() {
 		Clientset: clientset,
 	}
 
+	go func() {
+		for {
+			err := (&pkg.Server{}).Run()
+			if err != nil {
+				klog.Errorf("Failure while running server, %v", err)
+			}
+		}
+	}()
+
 	for {
 		err = reconsiler.Resonsile(context.Background())
 		if err != nil {
-			fmt.Printf("Failed to reconsile, %v", err)
+			klog.Errorf("Failed to reconsile, %v", err)
 		}
 		time.Sleep(time.Minute)
 	}
