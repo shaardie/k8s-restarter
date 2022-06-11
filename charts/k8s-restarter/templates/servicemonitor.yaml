@@ -1,0 +1,14 @@
+{{- if .Values.metrics.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name:  {{ include "k8s-restarter.fullname" . }}
+  labels:
+    team: frontend
+spec:
+  selector:
+    matchLabels:
+      {{- include "k8s-restarter.selectorLabels" . | nindent 6 }}
+  endpoints:
+    - port: http
+{{- end }}

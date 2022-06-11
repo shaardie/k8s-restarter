@@ -25,6 +25,10 @@ serviceAccount:
 
 podAnnotations: {}
 
+# Scrape Metrics using Prometheus
+metrics:
+  enabled: false
+
 podSecurityContext: {}
   # fsGroup: 2000
 
