@@ -1,7 +1,7 @@
 restartInterval: 10m
 
 # For example "k8s-restarter.kubernetes.io/enabled"
-includeAnnotation: ""
+includeAnnotation: "banana"
 
 # For example "k8s-restarter.kubernetes.io/ignore"
 excludeAnnotation: ""

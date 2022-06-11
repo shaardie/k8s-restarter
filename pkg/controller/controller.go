@@ -19,6 +19,13 @@ type Controller struct {
 	Clientset *kubernetes.Clientset
 }
 
+// reconcilationInfo holds information about a reconsilation loop
+type reconcilationInfo struct {
+	Excluded  int `json:"excluded"`
+	Skipped   int `json:"skipped"`
+	Restarted int `json:"restarted"`
+}
+
 // Reconcile runs the reconciliation loop on all apps/*
 func (c *Controller) Reconcile(ctx context.Context) error {
 	deployments, err := c.Clientset.AppsV1().Deployments("").List(ctx, metav1.ListOptions{})
@@ -45,17 +52,25 @@ func (c *Controller) Reconcile(ctx context.Context) error {
 		apps = append(apps, (*DaemonSet)(&daemonsets.Items[i]))
 	}
 
+	info := reconcilationInfo{}
 	for _, a := range apps {
-		err := c.ReconcileApp(ctx, a)
+		err := c.ReconcileApp(ctx, a, &info)
 		if err != nil {
 			fmt.Printf("Failed to reconcile %v/%v, %v", a.GetNamespace(), a.GetName(), err)
 		}
 	}
+	opsExcluded.Set(float64(info.Excluded))
+	opsRestarts.Set(float64(info.Restarted))
+	opsSkips.Set(float64(info.Skipped))
+	opsExcludedHisto.Observe(float64(info.Excluded))
+	opsRestartsHisto.Observe(float64(info.Restarted))
+	opsSkipsHisto.Observe(float64(info.Skipped))
+	c.Logger.Sugar().Infow("Reconciled", "info", info)
 	return nil
 }
 
 // ReconcileApp reconciles a single app
-func (c *Controller) ReconcileApp(ctx context.Context, app App) error {
+func (c *Controller) ReconcileApp(ctx context.Context, app App, info *reconcilationInfo) error {
 	name := app.GetName()
 	namespace := app.GetNamespace()
 	kind := app.GetKind()
@@ -70,20 +85,24 @@ func (c *Controller) ReconcileApp(ctx context.Context, app App) error {
 
 	// Check for exclusion
 	if c.namespaceExcluded(namespace) {
+		info.Excluded++
 		logger.Debug("namespace excluded")
 		return nil
 	}
 	if c.Cfg.ExcludeAnnotation != "" && HasAnnotation(app, c.Cfg.ExcludeAnnotation) {
+		info.Excluded++
 		logger.Debug("excluded due to configured annotation")
 		return nil
 	}
 	if c.Cfg.IncludeAnnotation != "" && !HasAnnotation(app, c.Cfg.IncludeAnnotation) {
+		info.Excluded++
 		logger.Debug("excluded due to missing annotation")
 		return nil
 	}
 
 	// Check for status
 	if !app.StatusOK() {
+		info.Skipped++
 		logger.Debug("not ready...skipping")
 		return nil
 	}
@@ -100,6 +119,7 @@ func (c *Controller) ReconcileApp(ctx context.Context, app App) error {
 	}
 	if last.Add(c.Cfg.RestartInterval).After(now) {
 		logger.Debug("not scheduled for a restart")
+		info.Skipped++
 		return nil
 	}
 
@@ -110,6 +130,7 @@ func (c *Controller) ReconcileApp(ctx context.Context, app App) error {
 	}
 
 	logger.Debug("restarted")
+	info.Restarted++
 	return nil
 }
 
