@@ -6,17 +6,21 @@ import (
 	"time"
 
 	"github.com/shaardie/k8s-restarter/pkg/config"
+	"github.com/shaardie/k8s-restarter/pkg/server"
 
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
-// Controller is responsible for the reconciliation
+// Controller is responsible for the reconcilation
 type Controller struct {
 	Logger    *zap.Logger
 	Cfg       *config.Config
 	Clientset *kubernetes.Clientset
+	Server    *server.Server
+	stop      chan struct{}
+	done      chan struct{}
 }
 
 // reconcilationInfo holds information about a reconsilation loop
@@ -26,8 +30,47 @@ type reconcilationInfo struct {
 	Restarted int `json:"restarted"`
 }
 
-// Reconcile runs the reconciliation loop on all apps/*
-func (c *Controller) Reconcile(ctx context.Context) error {
+func (c *Controller) Stop() {
+	if c.stop == nil {
+		return
+	}
+	close(c.stop)
+	<-c.done
+	c.Logger.Info("Stopped")
+}
+
+func (c *Controller) Run(ctx context.Context) {
+	c.stop = make(chan struct{})
+	c.done = make(chan struct{})
+	var interval time.Duration
+	shoudRun := func() bool {
+		select {
+		case <-c.stop:
+			close(c.done)
+			return false
+		default:
+			return true
+		}
+	}
+	for shoudRun() {
+		if interval >= 0 {
+			time.Sleep(time.Microsecond)
+			interval -= time.Microsecond
+			continue
+		}
+		err := c.reconcile(ctx)
+		if err == nil {
+			c.Server.SetHealth("controller", true)
+		} else {
+			c.Logger.Sugar().Errorw("Failed to reconcile", "error", err)
+			c.Server.SetHealth("controller", false)
+		}
+		interval = c.Cfg.ReconcilationInterval
+	}
+}
+
+// reconcile runs the reconcilation loop on all apps/*
+func (c *Controller) reconcile(ctx context.Context) error {
 	deployments, err := c.Clientset.AppsV1().Deployments("").List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to get deployments, %w", err)
@@ -54,7 +97,7 @@ func (c *Controller) Reconcile(ctx context.Context) error {
 
 	info := reconcilationInfo{}
 	for _, a := range apps {
-		err := c.ReconcileApp(ctx, a, &info)
+		err := c.reconcileApp(ctx, a, &info)
 		if err != nil {
 			fmt.Printf("Failed to reconcile %v/%v, %v", a.GetNamespace(), a.GetName(), err)
 		}
@@ -69,8 +112,8 @@ func (c *Controller) Reconcile(ctx context.Context) error {
 	return nil
 }
 
-// ReconcileApp reconciles a single app
-func (c *Controller) ReconcileApp(ctx context.Context, app App, info *reconcilationInfo) error {
+// reconcileApp reconciles a single app
+func (c *Controller) reconcileApp(ctx context.Context, app App, info *reconcilationInfo) error {
 	name := app.GetName()
 	namespace := app.GetNamespace()
 	kind := app.GetKind()

@@ -10,11 +10,13 @@ import (
 
 // Config represents the configuration of this service
 type Config struct {
-	RestartInterval       time.Duration `json:"-"`
-	RestartIntervalHelper string        `json:"restartInterval"`
-	ExcludeNamespaces     []string      `json:"excludeNamespaces"`
-	IncludeAnnotation     string        `json:"includeAnnotation"`
-	ExcludeAnnotation     string        `json:"excludeAnnotation"`
+	ReconcilationInterval       time.Duration `json:"-"`
+	ReconcilationIntervalHelper string        `json:"reconcilationInterval"`
+	RestartInterval             time.Duration `json:"-"`
+	RestartIntervalHelper       string        `json:"restartInterval"`
+	ExcludeNamespaces           []string      `json:"excludeNamespaces"`
+	IncludeAnnotation           string        `json:"includeAnnotation"`
+	ExcludeAnnotation           string        `json:"excludeAnnotation"`
 }
 
 // GetConfig reads and parses the configuration from the configuration file
@@ -35,6 +37,14 @@ func GetConfig(cf string) (*Config, error) {
 
 		}
 		cfg.RestartInterval = d
+	}
+	if cfg.ReconcilationIntervalHelper != "" {
+		d, err := time.ParseDuration(cfg.ReconcilationIntervalHelper)
+		if err != nil {
+			return cfg, fmt.Errorf("failed to parse duration %v in config file %v, %w", cfg.ReconcilationIntervalHelper, cf, err)
+
+		}
+		cfg.ReconcilationInterval = d
 	}
 	return cfg, nil
 }

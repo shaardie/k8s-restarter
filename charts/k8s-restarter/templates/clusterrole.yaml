@@ -6,15 +6,27 @@ metadata:
   labels:
     {{- include "k8s-restarter.labels" . | nindent 4 }}
 rules:
-- apiGroups:
-    - apps
-  resources:
-    - deployments
-    - statefulsets
-    - daemonsets
-  verbs:
-    - get
-    - list
-    - watch
-    - update
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+      - statefulsets
+      - daemonsets
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
 {{- end }}

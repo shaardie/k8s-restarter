@@ -11,8 +11,9 @@ spec:
       {{- include "k8s-restarter.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
       annotations:
+        checksum/config: {{ toYaml .Values.config | b64enc }}
+      {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
@@ -51,6 +52,10 @@ spec:
           args:
             - -config
             - /config/config.yaml
+            - -lease-lock-namespace
+            - {{ .Release.Namespace }}
+            - -lease-lock-name
+            - {{ include "k8s-restarter.fullname" . }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}

@@ -3,6 +3,7 @@ module github.com/shaardie/k8s-restarter
 go 1.18
 
 require (
+	github.com/google/uuid v1.1.2
 	github.com/prometheus/client_golang v1.12.2
 	go.uber.org/zap v1.21.0
 	k8s.io/api v0.24.1
