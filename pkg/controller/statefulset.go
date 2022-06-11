@@ -1,4 +1,4 @@
-package pkg
+package controller
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+// StatefulSet fulfilling the App Interface
 type StatefulSet appv1.StatefulSet
 
 func (*StatefulSet) GetKind() string {

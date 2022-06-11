@@ -1,4 +1,4 @@
-package pkg
+package controller
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+// Deployment fulfilling the App Interface
 type Deployment appv1.Deployment
 
 func (*Deployment) GetKind() string {

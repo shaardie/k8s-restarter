@@ -1,31 +1,35 @@
-package pkg
+package controller
 
 import (
 	"context"
 	"fmt"
 	"time"
 
+	"github.com/shaardie/k8s-restarter/pkg/config"
+
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
-type Reconsiler struct {
+// Controller is responsible for the reconciliation
+type Controller struct {
 	Logger    *zap.Logger
-	Cfg       *Config
+	Cfg       *config.Config
 	Clientset *kubernetes.Clientset
 }
 
-func (r *Reconsiler) Resonsile(ctx context.Context) error {
-	deployments, err := r.Clientset.AppsV1().Deployments("").List(ctx, metav1.ListOptions{})
+// Reconcile runs the reconciliation loop on all apps/*
+func (c *Controller) Reconcile(ctx context.Context) error {
+	deployments, err := c.Clientset.AppsV1().Deployments("").List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to get deployments, %w", err)
 	}
-	statefulsets, err := r.Clientset.AppsV1().StatefulSets("").List(ctx, metav1.ListOptions{})
+	statefulsets, err := c.Clientset.AppsV1().StatefulSets("").List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to get statefulsets, %w", err)
 	}
-	daemonsets, err := r.Clientset.AppsV1().DaemonSets("").List(ctx, metav1.ListOptions{})
+	daemonsets, err := c.Clientset.AppsV1().DaemonSets("").List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to get daemonsets, %w", err)
 	}
@@ -42,20 +46,21 @@ func (r *Reconsiler) Resonsile(ctx context.Context) error {
 	}
 
 	for _, a := range apps {
-		err := r.ResonsileApp(ctx, a)
+		err := c.ReconcileApp(ctx, a)
 		if err != nil {
-			fmt.Printf("Failed to reconsile %v/%v, %v", a.GetNamespace(), a.GetName(), err)
+			fmt.Printf("Failed to reconcile %v/%v, %v", a.GetNamespace(), a.GetName(), err)
 		}
 	}
 	return nil
 }
 
-func (r *Reconsiler) ResonsileApp(ctx context.Context, app App) error {
+// ReconcileApp reconciles a single app
+func (c *Controller) ReconcileApp(ctx context.Context, app App) error {
 	name := app.GetName()
 	namespace := app.GetNamespace()
 	kind := app.GetKind()
 
-	logger := r.Logger.With(
+	logger := c.Logger.With(
 		zap.Any("app", map[string]string{
 			"name":      name,
 			"namespace": namespace,
@@ -64,15 +69,15 @@ func (r *Reconsiler) ResonsileApp(ctx context.Context, app App) error {
 	)
 
 	// Check for exclusion
-	if r.namespaceExcluded(namespace) {
+	if c.namespaceExcluded(namespace) {
 		logger.Debug("namespace excluded")
 		return nil
 	}
-	if r.Cfg.ExcludeAnnotation != "" && HasAnnotation(app, r.Cfg.ExcludeAnnotation) {
+	if c.Cfg.ExcludeAnnotation != "" && HasAnnotation(app, c.Cfg.ExcludeAnnotation) {
 		logger.Debug("excluded due to configured annotation")
 		return nil
 	}
-	if r.Cfg.IncludeAnnotation != "" && !HasAnnotation(app, r.Cfg.IncludeAnnotation) {
+	if c.Cfg.IncludeAnnotation != "" && !HasAnnotation(app, c.Cfg.IncludeAnnotation) {
 		logger.Debug("excluded due to missing annotation")
 		return nil
 	}
@@ -93,13 +98,13 @@ func (r *Reconsiler) ResonsileApp(ctx context.Context, app App) error {
 		t := app.GetCreationTimestamp().Time
 		last = &t
 	}
-	if last.Add(r.Cfg.RestartInterval).After(now) {
+	if last.Add(c.Cfg.RestartInterval).After(now) {
 		logger.Debug("not scheduled for a restart")
 		return nil
 	}
 
 	setTimeInPodTemplateSpec(app.GetPodTemplateSpec())
-	err = app.Update(context.TODO(), r.Clientset)
+	err = app.Update(context.TODO(), c.Clientset)
 	if err != nil {
 		return fmt.Errorf("failed to set annotations on pod template from %v %v/%v, %w", kind, namespace, name, err)
 	}
@@ -108,11 +113,18 @@ func (r *Reconsiler) ResonsileApp(ctx context.Context, app App) error {
 	return nil
 }
 
-func (r *Reconsiler) namespaceExcluded(ns string) bool {
-	for _, excludedNs := range r.Cfg.ExcludeNamespaces {
+func (c *Controller) namespaceExcluded(ns string) bool {
+	for _, excludedNs := range c.Cfg.ExcludeNamespaces {
 		if ns == excludedNs {
 			return true
 		}
 	}
 	return false
+}
+
+// HasAnnotation is a helper function to check, if the App has a specific
+// Annotation
+func HasAnnotation(a App, ann string) bool {
+	_, ok := a.GetAnnotations()[ann]
+	return ok
 }

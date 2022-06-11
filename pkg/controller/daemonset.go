@@ -1,4 +1,4 @@
-package pkg
+package controller
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+// DaemonSet fulfilling the App Interface
 type DaemonSet appv1.DaemonSet
 
 func (*DaemonSet) GetKind() string {

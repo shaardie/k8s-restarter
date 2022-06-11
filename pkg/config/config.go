@@ -1,4 +1,4 @@
-package pkg
+package config
 
 import (
 	"fmt"
@@ -8,6 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
+// Config represents the configuration of this service
 type Config struct {
 	RestartInterval       time.Duration `json:"-"`
 	RestartIntervalHelper string        `json:"restartInterval"`
@@ -16,6 +17,7 @@ type Config struct {
 	ExcludeAnnotation     string        `json:"excludeAnnotation"`
 }
 
+// GetConfig reads and parses the configuration from the configuration file
 func GetConfig(cf string) (*Config, error) {
 	cfg := &Config{}
 	content, err := ioutil.ReadFile(cf)

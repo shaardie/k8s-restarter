@@ -8,8 +8,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/shaardie/k8s-restarter/pkg"
+	"github.com/shaardie/k8s-restarter/pkg/config"
+	"github.com/shaardie/k8s-restarter/pkg/controller"
 	"github.com/shaardie/k8s-restarter/pkg/server"
+
 	"go.uber.org/zap"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -68,12 +70,12 @@ func main() {
 		logger.Sugar().Fatalw("Failed to create kubernetes client set", "error", err)
 	}
 
-	cfg, err := pkg.GetConfig(configFile)
+	cfg, err := config.GetConfig(configFile)
 	if err != nil {
 		logger.Sugar().Fatalw("Unable to read config file", "config file", configFile, "error", err)
 	}
 
-	reconsiler := pkg.Reconsiler{
+	ctrl := controller.Controller{
 		Logger:    logger,
 		Cfg:       cfg,
 		Clientset: clientset,
@@ -88,9 +90,9 @@ func main() {
 	}()
 
 	for {
-		err = reconsiler.Resonsile(context.Background())
+		err = ctrl.Reconcile(context.Background())
 		if err != nil {
-			logger.Sugar().Errorw("Failed to reconsile", "error", err)
+			logger.Sugar().Errorw("Failed to reconcile", "error", err)
 			server.SetHealth("controller", false)
 		}
 		server.SetHealth("controller", true)
