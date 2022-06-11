@@ -5,9 +5,11 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/shaardie/k8s-restarter/pkg"
+	"github.com/shaardie/k8s-restarter/pkg/server"
 	"go.uber.org/zap"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -77,12 +79,11 @@ func main() {
 		Clientset: clientset,
 	}
 
+	server := server.New(logger, ":8080")
 	go func() {
-		for {
-			err := (&pkg.Server{}).Run()
-			if err != nil {
-				logger.Sugar().Errorw("Failure while running server", "error", err)
-			}
+		err := server.Run()
+		if err != nil && err != http.ErrServerClosed {
+			logger.Sugar().Fatalw("Failure while running server", "error", err)
 		}
 	}()
 
@@ -90,7 +91,9 @@ func main() {
 		err = reconsiler.Resonsile(context.Background())
 		if err != nil {
 			logger.Sugar().Errorw("Failed to reconsile", "error", err)
+			server.SetHealth("controller", false)
 		}
+		server.SetHealth("controller", true)
 		time.Sleep(time.Minute)
 	}
 }
