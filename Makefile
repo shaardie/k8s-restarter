@@ -21,5 +21,5 @@ helm-docs:
 
 helm-release:
 	test $(shell git rev-parse --abbrev-ref HEAD) = helm
-	helm package charts/k8s-restarter 
+	helm package charts/k8s-restarter
 	helm repo index .
