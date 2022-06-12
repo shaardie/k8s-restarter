@@ -2,53 +2,62 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+# -- Number of replicas
 replicaCount: 2
 
 image:
+  # -- Image Repository
   repository: shaardie/k8s-restarter
+  # -- Image Pull Policy
   pullPolicy: IfNotPresent
-  # Overrides the image tag whose default is latest.
-  tag: ""
+  # -- Image Tag
+  tag: "latest"
 
+# -- ImagePullSecrets
 imagePullSecrets: []
+
+# -- Overrides `k8s-restarter.name`
 nameOverride: ""
+
+# -- Override `k8s-restarter.fullname`
 fullnameOverride: ""
 
 serviceAccount:
-  # Specifies whether a service account should be created
+  # -- Enable Service Account
   create: true
-  # Annotations to add to the service account
+  # -- Annotations for the Service Account
   annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
+  # -- Name of the Service Account, `k8s-restarter.fullname`, if not set
   name: ""
 
+# Annotations for the Pods
 podAnnotations: {}
 
-# Scrape Metrics using Prometheus
 metrics:
+  # -- Enable Metrics Scraping using Prometheus
   enabled: false
 
-podSecurityContext: {}
-  # fsGroup: 2000
+# -- Pod Security Policy
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1001
+  runAsGroup: 1001
 
-securityContext: {}
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
+# -- Security Context
+securityContext:
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
 
 service:
+  # -- Service Type
   type: ClusterIP
+  # -- Service Port
   port: 80
 
+# -- Resource Limits
 resources: {}
-  # We usually recommend not to specify default resources and to leave this as a conscious
-  # choice for the user. This also increases chances charts run on environments with little
-  # resources, such as Minikube. If you do want to specify resources, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
   # limits:
   #   cpu: 100m
   #   memory: 128Mi
@@ -56,29 +65,30 @@ resources: {}
   #   cpu: 100m
   #   memory: 128Mi
 
+# -- Node labels for pod assignment
 nodeSelector: {}
 
+# -- Tolerations for pod assignment
 tolerations: []
 
+# -- Affinity for pod assignment
 affinity: {}
 
 # Configuration for the K8s Restarter.
 config:
-  # Interval for reconcilation loop
+  # -- Interval for reconcilation loop
   reconcilationInterval: 60s
 
-  # Apps running this interval longs are restarted.
+  # -- Apps running this interval longs are restarted
   restartInterval: 10m
 
-  # Include Apps with this Annotation.
-  # If set, this works as a white list.
-  # For example "k8s-restarter.kubernetes.io/enabled"
+  # -- Whitelist Annotations of Apps to include
+   # For example "k8s-restarter.kubernetes.io/enabled"
   includeAnnotation: ""
 
-  # Exclude Apps with this Annotation.
-  # If set, this works as a black list.
+  # -- Blacklist Annotation of Apps to exclude
   # For example "k8s-restarter.kubernetes.io/ignore"
   excludeAnnotation: ""
 
-  # Ignore all Apps in this Namespaces
+  # -- Blacklist of Namespaces to exlude
   excludeNamespaces: []

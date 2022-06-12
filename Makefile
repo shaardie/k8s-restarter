@@ -15,3 +15,6 @@ image:
 
 release: image
 	docker push shaardie/k8s-restarter:$(VERSION)
+
+helm-docs:
+	helm-docs -c charts
