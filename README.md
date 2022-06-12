@@ -6,20 +6,20 @@ It is meant to work the same way like `kubectl rollout restart` and adds an `k8s
 
 ## Installation
 
-This Controller comes with a helm chart and can be installed as easy as running:
+This controller comes with a [Helm](https://helm.sh/) chart and can be installed as easy as running:
 
 ```bash
 $ helm repo add k8s-restarter https://k8s-restarter-chart.haardiek.org
 $ helm install my-release k8s-restarter/k8s-restarter
 ```
 
-For detailed information about the chart, take a look at the [Helm Chart Readme](./charts/k8s-restarter/README.md).
+For detailed information about the configuration, take a look at the [Helm Chart Readme](./charts/k8s-restarter/README.md).
 
 ## Configuration
 
 The configuration can be done via a configuration file in the YAML format.
 You can exclude Namespace and specific Apps from being restarted as well as using whitelist Annotations.
-The configuration is also explained in the [Helm Chart Readme](./charts/k8s-restarter/README.md) and the format can also be seen in the [values.yaml](./charts/k8s-restarter/values.yaml#78)
+The configuration is also explained in the [Helm Chart Readme](./charts/k8s-restarter/README.md) and the format can also be seen in the [values.yaml](./charts/k8s-restarter/values.yaml#L78).
 
 
 ## Building and Testing
