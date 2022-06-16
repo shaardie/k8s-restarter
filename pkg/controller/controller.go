@@ -14,7 +14,10 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-const restartedAtAnnotation = "k8s-restarter.kubernetes.io/restartedAt"
+const (
+	restartedAtAnnotation = "k8s-restarter.kubernetes.io/restartedAt"
+	minInterval           = 50 * time.Microsecond
+)
 
 // Controller is responsible for the reconcilation
 type Controller struct {
@@ -57,8 +60,8 @@ func (c *Controller) Run(ctx context.Context) {
 	}
 	for shoudRun() {
 		if interval >= 0 {
-			time.Sleep(time.Microsecond)
-			interval -= time.Microsecond
+			time.Sleep(minInterval)
+			interval -= minInterval
 			continue
 		}
 		err := c.reconcile(ctx)
