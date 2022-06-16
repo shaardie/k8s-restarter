@@ -1,8 +1,18 @@
 # k8s-restarter
 
-![Version: 0.1.4](https://img.shields.io/badge/Version-0.1.4-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square)
+![Version: 0.1.6](https://img.shields.io/badge/Version-0.1.6-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.1.0](https://img.shields.io/badge/AppVersion-0.1.0-informational?style=flat-square)
 
 K8s Restarter is a small controller to restart Pods associated with Deployments, StateFulSets and DaemonSets.
+
+## Maintainers
+
+| Name | Email | Url |
+| ---- | ------ | --- |
+| Sven Haardiek | <sven@haardiek.de> |  |
+
+## Source Code
+
+* <https://github.com/shaardie/k8s-restarter>
 
 ## Values
 
@@ -18,7 +28,7 @@ K8s Restarter is a small controller to restart Pods associated with Deployments,
 | fullnameOverride | string | `""` | Override `k8s-restarter.fullname` |
 | image.pullPolicy | string | `"IfNotPresent"` | Image Pull Policy |
 | image.repository | string | `"shaardie/k8s-restarter"` | Image Repository |
-| image.tag | string | `"latest"` | Image Tag |
+| image.tag | string | `""` | Image Tag, default to appVersion. |
 | imagePullSecrets | list | `[]` | ImagePullSecrets |
 | metrics.enabled | bool | `false` | Enable Metrics Scraping using Prometheus |
 | nameOverride | string | `""` | Overrides `k8s-restarter.name` |

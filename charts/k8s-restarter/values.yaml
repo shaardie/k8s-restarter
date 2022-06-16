@@ -10,8 +10,8 @@ image:
   repository: shaardie/k8s-restarter
   # -- Image Pull Policy
   pullPolicy: IfNotPresent
-  # -- Image Tag
-  tag: "latest"
+  # -- Image Tag, default to appVersion.
+  tag: ""
 
 # -- ImagePullSecrets
 imagePullSecrets: []

@@ -1,6 +1,12 @@
 apiVersion: v2
 name: k8s-restarter
+version: 0.1.6
 description: K8s Restarter is a small controller to restart Pods associated
   with Deployments, StateFulSets and DaemonSets.
 type: application
-version: 0.1.5
+sources:
+  - https://github.com/shaardie/k8s-restarter
+maintainers:
+  - name: Sven Haardiek
+    email: sven@haardiek.de
+appVersion: 0.1.0
