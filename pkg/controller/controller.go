@@ -9,9 +9,12 @@ import (
 	"github.com/shaardie/k8s-restarter/pkg/server"
 
 	"go.uber.org/zap"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
+
+const restartedAtAnnotation = "k8s-restarter.kubernetes.io/restartedAt"
 
 // Controller is responsible for the reconcilation
 type Controller struct {
@@ -126,20 +129,11 @@ func (c *Controller) reconcileApp(ctx context.Context, app App, info *reconcilat
 		}),
 	)
 
-	// Check for exclusion
-	if c.namespaceExcluded(namespace) {
+	// First check for exclusion and then for inclusion
+	if shouldSelect(app, c.Cfg.Exclude, false) ||
+		!shouldSelect(app, c.Cfg.Include, true) {
 		info.Excluded++
-		logger.Debug("namespace excluded")
-		return nil
-	}
-	if c.Cfg.ExcludeAnnotation != "" && HasAnnotation(app, c.Cfg.ExcludeAnnotation) {
-		info.Excluded++
-		logger.Debug("excluded due to configured annotation")
-		return nil
-	}
-	if c.Cfg.IncludeAnnotation != "" && !HasAnnotation(app, c.Cfg.IncludeAnnotation) {
-		info.Excluded++
-		logger.Debug("excluded due to missing annotation")
+		logger.Debug("Excluded")
 		return nil
 	}
 
@@ -177,18 +171,59 @@ func (c *Controller) reconcileApp(ctx context.Context, app App, info *reconcilat
 	return nil
 }
 
-func (c *Controller) namespaceExcluded(ns string) bool {
-	for _, excludedNs := range c.Cfg.ExcludeNamespaces {
-		if ns == excludedNs {
+type selectable interface {
+	GetNamespace() string
+	GetLabels() map[string]string
+}
+
+func shouldSelect(s selectable, matcher config.Matcher, defaultValue bool) bool {
+	// Mather is not enabled, so everything matches
+	if !matcher.Enabled {
+		return defaultValue
+	}
+
+	for _, selector := range matcher.Selectors {
+		// Only check further if namespace either is empty or matches
+		if selector.Namespace != "" && s.GetNamespace() != selector.Namespace {
+			continue
+		}
+		// No MatchLabels or Matchlabels match
+		if len(selector.MatchLabels) == 0 ||
+			matchLabels(s.GetLabels(), selector.MatchLabels) {
 			return true
 		}
 	}
 	return false
 }
 
-// HasAnnotation is a helper function to check, if the App has a specific
-// Annotation
-func HasAnnotation(a App, ann string) bool {
-	_, ok := a.GetAnnotations()[ann]
-	return ok
+// matchLabels checks if match are in labels.
+func matchLabels(labels, match map[string]string) bool {
+	for k, v := range match {
+		if l, ok := labels[k]; !ok || l != v {
+			return false
+		}
+	}
+	return true
+}
+
+// getTimePodTemplateSpec get the restartAtAnnotation from a PodTemplateSpec.
+// If not set, returns nil
+func getTimePodTemplateSpec(pts *v1.PodTemplateSpec) (*time.Time, error) {
+	s, ok := pts.Annotations[restartedAtAnnotation]
+	if !ok {
+		return nil, nil
+	}
+	t, err := time.Parse(time.RFC3339, s)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse time string %v, %w", s, err)
+	}
+	return &t, err
+}
+
+// setTimeInPodTemplateSpec sets the restartAtAnnotation on a PodTemplateSpec
+func setTimeInPodTemplateSpec(pts *v1.PodTemplateSpec) {
+	if pts.Annotations == nil {
+		pts.Annotations = make(map[string]string)
+	}
+	pts.Annotations[restartedAtAnnotation] = time.Now().Format(time.RFC3339)
 }

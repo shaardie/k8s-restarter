@@ -82,13 +82,18 @@ config:
   # -- Apps running this interval longs are restarted
   restartInterval: 10m
 
-  # -- Whitelist Annotations of Apps to include
-   # For example "k8s-restarter.kubernetes.io/enabled"
-  includeAnnotation: ""
+  include:
+    # -- Enable whitelist include selectors.
+    enabled: false
+    # -- List of selectors. Can be selected on Namespace, Labels or both.
+    selectors: []
+      # - namespace: kube-system
+      #   matchLabels:
 
-  # -- Blacklist Annotation of Apps to exclude
-  # For example "k8s-restarter.kubernetes.io/ignore"
-  excludeAnnotation: ""
-
-  # -- Blacklist of Namespaces to exlude
-  excludeNamespaces: []
+  exclude:
+    # -- Enable blacklist exclude selectors.
+    enabled: false
+    # -- List of selectors. Can be selected on Namespace, Labels or both.
+    selectors: []
+      # - namespace: kube-system
+      #   matchLabels:

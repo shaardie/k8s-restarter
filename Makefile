@@ -6,6 +6,9 @@ VERSION?=latest
 k8s-restarter:
 	go build -o ${BINARY_NAME} cmd/k8s-restarter/main.go
 
+test:
+	go test -v -cover ./...
+
 clean:
 	go clean
 	rm -rf ${BINARY_NAME}
@@ -18,6 +21,9 @@ release: image
 
 helm-docs:
 	helm-docs -c charts
+
+helm-lint:
+	helm lint charts/k8s-restarter --strict
 
 helm-release:
 	test $(shell git rev-parse --abbrev-ref HEAD) = helm

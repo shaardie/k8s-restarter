@@ -3,4 +3,4 @@ name: k8s-restarter
 description: K8s Restarter is a small controller to restart Pods associated
   with Deployments, StateFulSets and DaemonSets.
 type: application
-version: 0.1.3
+version: 0.1.4

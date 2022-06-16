@@ -1,6 +1,6 @@
 # k8s-restarter
 
-![Version: 0.1.3](https://img.shields.io/badge/Version-0.1.3-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square)
+![Version: 0.1.4](https://img.shields.io/badge/Version-0.1.4-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square)
 
 K8s Restarter is a small controller to restart Pods associated with Deployments, StateFulSets and DaemonSets.
 
@@ -9,9 +9,10 @@ K8s Restarter is a small controller to restart Pods associated with Deployments,
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | affinity | object | `{}` | Affinity for pod assignment |
-| config.excludeAnnotation | string | `""` | Blacklist Annotation of Apps to exclude For example "k8s-restarter.kubernetes.io/ignore" |
-| config.excludeNamespaces | list | `[]` | Blacklist of Namespaces to exlude |
-| config.includeAnnotation | string | `""` | Whitelist Annotations of Apps to include For example "k8s-restarter.kubernetes.io/enabled" |
+| config.exclude.enabled | bool | `false` | Enable blacklist exclude selectors. |
+| config.exclude.selectors | list | `[]` | List of selectors. Can be selected on Namespace, Labels or both. |
+| config.include.enabled | bool | `false` | Enable whitelist include selectors. |
+| config.include.selectors | list | `[]` | List of selectors. Can be selected on Namespace, Labels or both. |
 | config.reconcilationInterval | string | `"60s"` | Interval for reconcilation loop |
 | config.restartInterval | string | `"10m"` | Apps running this interval longs are restarted |
 | fullnameOverride | string | `""` | Override `k8s-restarter.fullname` |

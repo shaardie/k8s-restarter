@@ -14,9 +14,18 @@ type Config struct {
 	ReconcilationIntervalHelper string        `json:"reconcilationInterval"`
 	RestartInterval             time.Duration `json:"-"`
 	RestartIntervalHelper       string        `json:"restartInterval"`
-	ExcludeNamespaces           []string      `json:"excludeNamespaces"`
-	IncludeAnnotation           string        `json:"includeAnnotation"`
-	ExcludeAnnotation           string        `json:"excludeAnnotation"`
+	Include                     Matcher       `json:"include"`
+	Exclude                     Matcher       `json:"exclude"`
+}
+
+type Matcher struct {
+	Enabled   bool       `json:"enabled"`
+	Selectors []Selector `json:"selectors"`
+}
+
+type Selector struct {
+	Namespace   string            `json:"namespace"`
+	MatchLabels map[string]string `json:"matchLabels"`
 }
 
 // GetConfig reads and parses the configuration from the configuration file

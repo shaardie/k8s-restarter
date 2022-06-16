@@ -87,6 +87,7 @@ func main() {
 	if err != nil {
 		logger.Sugar().Fatalw("Unable to read config file", "config file", configFile, "error", err)
 	}
+	logger.Sugar().Debugw("Configuration read", "config", cfg)
 
 	// Run Server
 	server := server.New(logger, ":8080")
