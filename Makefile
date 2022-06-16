@@ -27,5 +27,6 @@ helm-lint:
 
 helm-release:
 	test $(shell git rev-parse --abbrev-ref HEAD) = helm
+	git rebase main
 	helm package charts/k8s-restarter
 	helm repo index .
