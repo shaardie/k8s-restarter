@@ -1,0 +1,29 @@
+#!/bin/bash
+
+set -eux
+
+export VERSION="$1"
+
+# Get Chart Version
+CHART_VERSION=$(grep ^version: ./charts/k8s-restarter/Chart.yaml | awk '{print $2}' | awk -F. '{print $1 "." $2 "." ++$3}')
+
+# Set new Version in Chart
+sed -i "s/\(version: \).*/\1$CHART_VERSION/" charts/k8s-restarter/Chart.yaml
+sed -i "s/\(appVersion: \).*/\1$VERSION/" charts/k8s-restarter/Chart.yaml
+
+# Make commit
+git commit -m "Version $VERSION" charts/k8s-restarter/Chart.yaml
+git tag "v$VERSION"
+git push
+git push --tags
+
+# Push Docker Image
+make release
+
+git checkout helm
+make helm-release
+git add .
+git commit -m "Release k8s-restarter-$CHART_VERSION"
+git push
+
+git checkout main
